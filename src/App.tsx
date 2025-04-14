@@ -5,12 +5,15 @@ import {
   Heading,
   Box,
   useToast,
+  Spinner,
+  Center,
 } from '@chakra-ui/react'
 import { AddItemForm } from './components/AddItemForm'
 import { GroceryList } from './components/GroceryList'
 import { ListManager } from './components/ListManager'
 import { StoreFilter } from './components/StoreFilter'
 import { GroceryItem, Category, GroceryList as IGroceryList, Store } from './types'
+import { fetchLists, createList, updateList, deleteList, addItem, toggleItem, deleteItem } from './lib/db'
 
 const initialCategories: Category[] = [
   { id: '1', name: 'Fruits & Vegetables', color: 'green.500' },
@@ -27,48 +30,58 @@ const initialStores: Store[] = [
   { id: '4', name: 'Walmart', color: 'blue.400' },
 ]
 
-const STORAGE_KEY = 'grocery-lists'
-
 function App() {
   const [lists, setLists] = useState<IGroceryList[]>([])
   const [currentList, setCurrentList] = useState<IGroceryList | null>(null)
   const [selectedStore, setSelectedStore] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const toast = useToast()
 
-  // Load lists from localStorage on initial render
+  // Load lists from Supabase on initial render
   useEffect(() => {
-    const savedLists = localStorage.getItem(STORAGE_KEY)
-    if (savedLists) {
-      const parsedLists = JSON.parse(savedLists)
-      setLists(parsedLists)
-      if (parsedLists.length > 0) {
-        setCurrentList(parsedLists[0])
+    async function loadLists() {
+      try {
+        const data = await fetchLists()
+        setLists(data)
+        if (data.length > 0) {
+          setCurrentList(data[0])
+        }
+      } catch (error) {
+        toast({
+          title: 'Error loading lists',
+          description: 'Failed to load your grocery lists',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [])
+    loadLists()
+  }, [toast])
 
-  // Save lists to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lists))
-  }, [lists])
-
-  const handleCreateList = (name: string) => {
-    const newList: IGroceryList = {
-      id: Date.now().toString(),
-      name,
-      items: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+  const handleCreateList = async (name: string) => {
+    try {
+      const newList = await createList(name)
+      setLists([...lists, newList])
+      setCurrentList(newList)
+      toast({
+        title: 'List created',
+        description: `"${name}" has been created`,
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error creating list',
+        description: 'Failed to create the list',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
     }
-    setLists([...lists, newList])
-    setCurrentList(newList)
-    toast({
-      title: 'List created',
-      description: `"${name}" has been created`,
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    })
   }
 
   const handleSelectList = (list: IGroceryList) => {
@@ -76,23 +89,34 @@ function App() {
     setSelectedStore(null) // Reset store filter when changing lists
   }
 
-  const handleDeleteList = (id: string) => {
-    const updatedLists = lists.filter(list => list.id !== id)
-    setLists(updatedLists)
-    if (currentList?.id === id) {
-      setCurrentList(updatedLists[0] || null)
-      setSelectedStore(null) // Reset store filter when deleting current list
+  const handleDeleteList = async (id: string) => {
+    try {
+      await deleteList(id)
+      const updatedLists = lists.filter(list => list.id !== id)
+      setLists(updatedLists)
+      if (currentList?.id === id) {
+        setCurrentList(updatedLists[0] || null)
+        setSelectedStore(null) // Reset store filter when deleting current list
+      }
+      toast({
+        title: 'List deleted',
+        description: 'The list has been deleted',
+        status: 'info',
+        duration: 2000,
+        isClosable: true,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error deleting list',
+        description: 'Failed to delete the list',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
     }
-    toast({
-      title: 'List deleted',
-      description: 'The list has been deleted',
-      status: 'info',
-      duration: 2000,
-      isClosable: true,
-    })
   }
 
-  const handleAddItem = (newItem: Omit<GroceryItem, 'id' | 'completed'>) => {
+  const handleAddItem = async (newItem: Omit<GroceryItem, 'id' | 'completed'>) => {
     if (!currentList) {
       toast({
         title: 'Error',
@@ -104,70 +128,97 @@ function App() {
       return
     }
 
-    const item: GroceryItem = {
-      ...newItem,
-      id: Date.now().toString(),
-      completed: false,
+    try {
+      const item = await addItem(currentList.id, newItem)
+      const updatedList = {
+        ...currentList,
+        items: [...currentList.items, item],
+        updatedAt: new Date().toISOString(),
+      }
+
+      setLists(lists.map(list => 
+        list.id === currentList.id ? updatedList : list
+      ))
+      setCurrentList(updatedList)
+
+      toast({
+        title: 'Item added',
+        description: `${newItem.name} has been added to your list`,
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error adding item',
+        description: 'Failed to add the item to the list',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
     }
-
-    const updatedList = {
-      ...currentList,
-      items: [...currentList.items, item],
-      updatedAt: new Date().toISOString(),
-    }
-
-    setLists(lists.map(list => 
-      list.id === currentList.id ? updatedList : list
-    ))
-    setCurrentList(updatedList)
-
-    toast({
-      title: 'Item added',
-      description: `${newItem.name} has been added to your list`,
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    })
   }
 
-  const handleToggleItem = (id: string) => {
+  const handleToggleItem = async (id: string) => {
     if (!currentList) return
 
-    const updatedList = {
-      ...currentList,
-      items: currentList.items.map(item =>
-        item.id === id ? { ...item, completed: !item.completed } : item
-      ),
-      updatedAt: new Date().toISOString(),
-    }
+    try {
+      await toggleItem(currentList.id, id)
+      const updatedList = {
+        ...currentList,
+        items: currentList.items.map(item =>
+          item.id === id ? { ...item, completed: !item.completed } : item
+        ),
+        updatedAt: new Date().toISOString(),
+      }
 
-    setLists(lists.map(list => 
-      list.id === currentList.id ? updatedList : list
-    ))
-    setCurrentList(updatedList)
+      setLists(lists.map(list => 
+        list.id === currentList.id ? updatedList : list
+      ))
+      setCurrentList(updatedList)
+    } catch (error) {
+      toast({
+        title: 'Error updating item',
+        description: 'Failed to update the item',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
   }
 
-  const handleDeleteItem = (id: string) => {
+  const handleDeleteItem = async (id: string) => {
     if (!currentList) return
 
-    const updatedList = {
-      ...currentList,
-      items: currentList.items.filter(item => item.id !== id),
-      updatedAt: new Date().toISOString(),
+    try {
+      await deleteItem(currentList.id, id)
+      const updatedList = {
+        ...currentList,
+        items: currentList.items.filter(item => item.id !== id),
+        updatedAt: new Date().toISOString(),
+      }
+
+      setLists(lists.map(list => 
+        list.id === currentList.id ? updatedList : list
+      ))
+      setCurrentList(updatedList)
+
+      toast({
+        title: 'Item removed',
+        description: 'The item has been removed from your list',
+        status: 'info',
+        duration: 2000,
+        isClosable: true,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error deleting item',
+        description: 'Failed to delete the item',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
     }
-
-    setLists(lists.map(list => 
-      list.id === currentList.id ? updatedList : list
-    ))
-    setCurrentList(updatedList)
-
-    toast({
-      title: 'Item removed',
-      description: 'The item has been removed from your list',
-      status: 'info',
-      duration: 2000,
-      isClosable: true,
-    })
   }
 
   // Calculate item counts by store
@@ -180,6 +231,14 @@ function App() {
   const filteredItems = currentList?.items.filter(
     item => !selectedStore || item.store === selectedStore
   ) || []
+
+  if (isLoading) {
+    return (
+      <Center h="100vh">
+        <Spinner size="xl" />
+      </Center>
+    )
+  }
 
   return (
     <Container maxW="container.md" py={8}>
