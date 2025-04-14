@@ -81,7 +81,7 @@ export const ListManager = ({
                 <Text>{list.name}</Text>
                 <HStack>
                   <Text fontSize="sm" color="gray.500">
-                    {new Date(list.updatedAt).toLocaleDateString()}
+                    {new Date(list.updated_at).toLocaleDateString()}
                   </Text>
                   <Button
                     size="sm"

@@ -13,7 +13,7 @@ import { GroceryList } from './components/GroceryList'
 import { ListManager } from './components/ListManager'
 import { StoreFilter } from './components/StoreFilter'
 import { GroceryItem, Category, GroceryList as IGroceryList, Store } from './types'
-import { fetchLists, createList, updateList, deleteList, addItem, toggleItem, deleteItem } from './lib/db'
+import { fetchLists, createList, deleteList, addItem, toggleItem, deleteItem } from './lib/db'
 
 const initialCategories: Category[] = [
   { id: '1', name: 'Fruits & Vegetables', color: 'green.500' },
