@@ -1,51 +1,41 @@
-# Family Grocery List App
+# Grocery List App
 
-A simple and intuitive grocery list application for families to manage their shopping lists. Built with React, TypeScript, and Chakra UI.
+A modern, responsive grocery list application built with React, TypeScript, and Chakra UI.
 
 ## Features
 
-- Add items with name, quantity, unit, and category
-- Mark items as completed
-- Delete items from the list
-- Categorized items with color coding
+- Create and manage multiple grocery lists
+- Add items with quantities and store categories
+- Filter items by store
 - Responsive design that works on all devices
-- Clean and modern user interface
+- Local storage persistence
+- Modern UI with Chakra UI components
 
-## Getting Started
+## Live Demo
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-4. Open your browser and navigate to `http://localhost:5173`
+Visit the live demo at: [https://skgrocerylist.netlify.app](https://skgrocerylist.netlify.app)
 
-## Usage
+## Development
 
-1. Add items using the form at the top of the page
-2. Select a category for each item
-3. Specify the quantity and unit
-4. Mark items as completed by clicking the checkbox
-5. Delete items using the trash icon
-6. Items are automatically color-coded by category
+```bash
+# Install dependencies
+npm install
 
-## Categories
+# Start development server
+npm run dev
 
-The app comes with predefined categories:
-- Fruits & Vegetables (Green)
-- Dairy (Blue)
-- Meat (Red)
-- Pantry (Yellow)
-- Beverages (Purple)
+# Build for production
+npm run build
+```
+
+## Deployment
+
+This app is deployed on Netlify with continuous deployment from GitHub. Any changes pushed to the main branch will automatically trigger a new deployment.
 
 ## Technologies Used
 
 - React
 - TypeScript
-- Vite
 - Chakra UI
-- React Icons
+- Vite
+- Netlify (Hosting)
